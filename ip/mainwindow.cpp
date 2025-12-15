@@ -18,37 +18,65 @@ MainWindow::MainWindow(QWidget *parent)
     imgwin->setPixmap (*initPixmap);
     mainLayout->addWidget (imgwin);
     setCentralWidget (central);
-    createActions();
-    createMenus();
+    createActions1();
+    createActions2();
+    createMenus1();
+    createMenus2();
     createToolBars();
+    b();
+    s();
 }
 
 MainWindow::~MainWindow() {
 
 }
-void MainWindow::createActions()
+void MainWindow::createActions1()
 {
 
-    openFileAction = new QAction (QStringLiteral("開啟檔案&0"),this);
+    openFileAction = new QAction (QStringLiteral("開啟檔案(&0)"),this);
     openFileAction->setShortcut (tr("Ctrl+0"));
     openFileAction->setStatusTip (QStringLiteral("開啟影像檔案"));
     connect (openFileAction, SIGNAL (triggered()), this, SLOT (showOpenFile()));
 
-    exitAction = new QAction (QStringLiteral("結束&Q"),this);
+    exitAction = new QAction (QStringLiteral("結束(&Q)"),this);
     exitAction->setShortcut (tr("Ctrl+Q"));
     exitAction->setStatusTip (QStringLiteral("退出程式"));
     connect (exitAction, SIGNAL (triggered()), this, SLOT (close()));
 }
-void MainWindow::createMenus()
+
+void MainWindow::createActions2()
+{
+
+    big = new QAction (QStringLiteral("放大(&B)"),this);
+    big->setShortcut (tr("Ctrl++"));
+    openFileAction->setStatusTip (QStringLiteral("大"));
+    connect (big, SIGNAL (triggered()), this, SLOT (b()));
+
+    small = new QAction (QStringLiteral("縮小(&S)"),this);
+    small->setShortcut (tr("Ctrl+-"));
+    openFileAction->setStatusTip (QStringLiteral("小"));
+    connect (small, SIGNAL (triggered()), this, SLOT (s()));
+
+
+}
+void MainWindow::createMenus1()
 {
     fileMenu = menuBar ()->addMenu (QStringLiteral("檔案&F"));
     fileMenu->addAction(openFileAction);
     fileMenu->addAction(exitAction);
 }
+void MainWindow::createMenus2()
+{
+    fileMenu = menuBar ()->addMenu (QStringLiteral("工具&P"));
+    fileMenu->addAction(big);
+    fileMenu->addAction(small);
+}
 void MainWindow::createToolBars()
 {
-    fileTool addToolBar("file");
+    fileTool = addToolBar("file");
     fileTool->addAction (openFileAction);
+    fileTool->addAction (big);
+    fileTool->addAction (small);
 }
 void MainWindow::loadFile (QString filename)
 {
@@ -79,3 +107,11 @@ filename = QFileDialog::getOpenFileName(this,
         }
     }
 }
+void MainWindow::b(){
+     imgwin->resize(imgwin->width() * 1.25, imgwin->height() * 1.25);
+};
+void MainWindow::s(){
+     imgwin->resize(imgwin->width() * 0.8, imgwin->height() * 0.8);
+};
+
+
