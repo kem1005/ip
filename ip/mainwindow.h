@@ -19,7 +19,6 @@
 // Overlay widget for drawing selection rectangle
 class SelectionOverlay : public QWidget
 {
-    Q_OBJECT
 public:
     SelectionOverlay(QWidget *parent = nullptr) : QWidget(parent) 
     {
