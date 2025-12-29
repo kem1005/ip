@@ -1,6 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
-
+#include "gwidget.h"
+#include "mouse.h"
 #include <QMainWindow>
 #include <QACtion>
 #include <QMenu>
@@ -24,7 +25,13 @@ private slots:
     void showOpenFile();
     void b();
     void s();
+    void showGeometryTransform();
+protected:
+    void mouseMoveEvent (QMouseEvent * event);
+    void mousePressEvent(QMouseEvent * event);
+    void mouseReleaseEvent (QMouseEvent * event);
 private:
+    Widget *gWin;
     QWidget *central;
     QMenu *fileMenu;
     QToolBar *fileTool;
@@ -35,5 +42,10 @@ private:
     QAction *exitAction;
     QAction *big;
     QAction *small;
+    QAction *geometryAction;
+    QLabel *statusLabel;
+    QLabel *MousePosLabel;
+    int x=300;
+    int y=200;
 };
 #endif // MAINWINDOW_H

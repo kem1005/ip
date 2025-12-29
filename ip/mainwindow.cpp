@@ -3,15 +3,32 @@
 #include <QMenuBar>
 #include <QFileDialog>
 #include <QDebug>
+
+#include <mouse.h>
+#include <gwidget.h>
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-    setWindowTitle(QStringLiteral("影像處理"));
+    statusLabel = new QLabel;
+    statusLabel->setText (QStringLiteral("指標位置"));
+    statusLabel->setFixedWidth (100);
+    MousePosLabel = new QLabel;
+    MousePosLabel->setText(tr(" "));
+    MousePosLabel->setFixedWidth (100);
+    statusBar()->addPermanentWidget (statusLabel);
+    statusBar()->addPermanentWidget (MousePosLabel);
+    setMouseTracking (true);
+
+    resize (400,300);
     central =new QWidget();
+    central->setMouseTracking(true);
     QHBoxLayout *mainLayout = new QHBoxLayout (central);
     imgwin = new QLabel();
+    imgwin->setMouseTracking(true);
     QPixmap
         *initPixmap = new QPixmap(300,200);
+    gWin =new Widget();
     initPixmap->fill (QColor(255,255,255));
     imgwin->resize (300,200);
     imgwin->setScaledContents(true);
@@ -42,6 +59,13 @@ void MainWindow::createActions1()
     exitAction->setShortcut (tr("Ctrl+Q"));
     exitAction->setStatusTip (QStringLiteral("退出程式"));
     connect (exitAction, SIGNAL (triggered()), this, SLOT (close()));
+    connect (exitAction,SIGNAL(triggered()),imgwin,SLOT (close()));
+
+    geometryAction = new QAction (QStringLiteral("幾何轉換"),this);
+    geometryAction->setShortcut (tr("Ctrl+G"));
+    geometryAction->setStatusTip (QStringLiteral("影像幾何轉換"));
+    connect (geometryAction, SIGNAL (triggered()), this, SLOT (showGeometryTransform()));
+    connect (exitAction, SIGNAL (triggered()),gWin, SLOT (close()));
 }
 
 void MainWindow::createActions2()
@@ -63,6 +87,7 @@ void MainWindow::createMenus1()
 {
     fileMenu = menuBar ()->addMenu (QStringLiteral("檔案&F"));
     fileMenu->addAction(openFileAction);
+    fileMenu->addAction(geometryAction);
     fileMenu->addAction(exitAction);
 }
 void MainWindow::createMenus2()
@@ -75,6 +100,7 @@ void MainWindow::createToolBars()
 {
     fileTool = addToolBar("file");
     fileTool->addAction (openFileAction);
+    fileTool->addAction (geometryAction);
     fileTool->addAction (big);
     fileTool->addAction (small);
 }
@@ -107,6 +133,49 @@ filename = QFileDialog::getOpenFileName(this,
         }
     }
 }
+void MainWindow:: showGeometryTransform()
+{
+    if (!img.isNull())
+        gWin->srcImg = img;
+    gWin->inWin->setPixmap (QPixmap:: fromImage (gWin->srcImg));
+    gWin->show();
+}
+
+void MainWindow::mouseMoveEvent (QMouseEvent * event)
+{
+    int x = event->x();
+    int y = event->y();
+    QString str = "(" + QString::number (event->x()) + ", " +QString::number (event->y()) +")";
+    if(!img.isNull() && x>=0 && x< imgwin->width()&&y>=0 &&y< imgwin->height())
+    {
+        int gray = qGray(img.pixel(x,y));
+        str += ("=" +QString::number(gray));
+    }
+    MousePosLabel->setText(str);
+}
+
+void MainWindow::mousePressEvent(QMouseEvent * event)
+{
+    QString str = "(" + QString::number (event->x()) + ", " +QString::number (event->y()) +")";
+    if (event->button() == Qt::LeftButton)
+    {
+        statusBar()->showMessage(QStringLiteral("左鍵:")+str);
+    }
+    else if (event->button()== Qt::RightButton)
+    {
+        statusBar ()->showMessage (QStringLiteral ("右鍵:")+str);
+    }
+    else if (event->button()== Qt::MiddleButton)
+    {
+        statusBar ()->showMessage(QStringLiteral("中鍵:")+str);
+    }
+}
+void MainWindow::mouseReleaseEvent (QMouseEvent* event)
+{
+    QString str = "(" + QString::number (event->x()) + ", " +QString::number (event->y()) +")";
+    statusBar ()->showMessage (QStringLiteral("釋放:")+str);
+}
+
 void MainWindow::b(){
      imgwin->resize(imgwin->width() * 1.25, imgwin->height() * 1.25);
 };
