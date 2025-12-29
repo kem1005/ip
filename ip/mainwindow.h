@@ -12,6 +12,43 @@
 #include <QPoint>
 #include <QRect>
 #include <QPainter>
+#include <QWidget>
+//---------------------------------------------------------------
+
+//---------------------------------------------------------
+// Overlay widget for drawing selection rectangle
+class SelectionOverlay : public QWidget
+{
+    Q_OBJECT
+public:
+    SelectionOverlay(QWidget *parent = nullptr) : QWidget(parent) 
+    {
+        setAttribute(Qt::WA_TransparentForMouseEvents);
+        setAttribute(Qt::WA_TranslucentBackground);
+    }
+    
+    void setSelectionRect(const QRect &rect, bool active)
+    {
+        selectionRect = rect;
+        isActive = active;
+        update();
+    }
+    
+protected:
+    void paintEvent(QPaintEvent *event) override
+    {
+        if (isActive && !selectionRect.isNull())
+        {
+            QPainter painter(this);
+            painter.setPen(QPen(Qt::blue, 2, Qt::DashLine));
+            painter.drawRect(selectionRect);
+        }
+    }
+    
+private:
+    QRect selectionRect;
+    bool isActive = false;
+};
 //---------------------------------------------------------------
 class MainWindow : public QMainWindow
 {
@@ -36,7 +73,7 @@ protected:
     void mousePressEvent(QMouseEvent * event);
     void mouseReleaseEvent (QMouseEvent * event);
     //---------------------------------------------------------
-    void paintEvent(QPaintEvent * event);
+    void resizeEvent(QResizeEvent * event);
     //---------------------------------------------------------------
 private:
     Widget *gWin;
@@ -60,6 +97,7 @@ private:
     QPoint selectionStart;
     QPoint selectionEnd;
     QRect selectionRect;
+    SelectionOverlay *overlay;
     //---------------------------------------------------------------
 };
 #endif // MAINWINDOW_H

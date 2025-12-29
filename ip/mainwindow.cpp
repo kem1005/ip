@@ -3,6 +3,9 @@
 #include <QMenuBar>
 #include <QFileDialog>
 #include <QDebug>
+//---------------------------------------------------------
+#include <QResizeEvent>
+//---------------------------------------------------------------
 
 #include <mouse.h>
 #include <gwidget.h>
@@ -12,6 +15,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     //---------------------------------------------------------
     isSelecting = false;
+    overlay = nullptr;
     //---------------------------------------------------------------
     statusLabel = new QLabel;
     statusLabel->setText (QStringLiteral("指標位置"));
@@ -38,6 +42,13 @@ MainWindow::MainWindow(QWidget *parent)
     imgwin->setPixmap (*initPixmap);
     mainLayout->addWidget (imgwin);
     setCentralWidget (central);
+    //---------------------------------------------------------
+    // Create overlay for selection rectangle on top of central widget
+    overlay = new SelectionOverlay(central);
+    overlay->setGeometry(0, 0, central->width(), central->height());
+    overlay->raise(); // Make sure overlay is on top
+    overlay->show();
+    //---------------------------------------------------------------
     createActions1();
     createActions2();
     createMenus1();
@@ -160,7 +171,13 @@ void MainWindow::mouseMoveEvent (QMouseEvent * event)
     {
         selectionEnd = event->pos();
         selectionRect = QRect(selectionStart, selectionEnd).normalized();
-        update();
+        
+        // Convert MainWindow coordinates to central widget coordinates
+        QPoint centralTopLeft = central->mapFrom(this, selectionRect.topLeft());
+        QPoint centralBottomRight = central->mapFrom(this, selectionRect.bottomRight());
+        QRect centralRect(centralTopLeft, centralBottomRight);
+        
+        overlay->setSelectionRect(centralRect, true);
     }
     //---------------------------------------------------------------
 }
@@ -236,6 +253,9 @@ void MainWindow::mouseReleaseEvent (QMouseEvent* event)
         }
         
         selectionRect = QRect();
+        //---------------------------------------------------------
+        overlay->setSelectionRect(QRect(), false);
+        //---------------------------------------------------------------
         update();
     }
     //---------------------------------------------------------------
@@ -249,15 +269,13 @@ void MainWindow::s(){
 };
 
 //---------------------------------------------------------
-void MainWindow::paintEvent(QPaintEvent * event)
+void MainWindow::resizeEvent(QResizeEvent * event)
 {
-    QMainWindow::paintEvent(event);
-    
-    if (isSelecting && !selectionRect.isNull())
+    QMainWindow::resizeEvent(event);
+    if (overlay)
     {
-        QPainter painter(this);
-        painter.setPen(QPen(Qt::blue, 2, Qt::DashLine));
-        painter.drawRect(selectionRect);
+        // Update overlay geometry to match central widget
+        overlay->setGeometry(0, 0, central->width(), central->height());
     }
 }
 //---------------------------------------------------------------
