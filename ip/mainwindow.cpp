@@ -19,6 +19,7 @@ MainWindow::MainWindow(QWidget *parent, bool isZoomedWindow)
     //---------------------------------------------------------
     isSelecting = false;
     overlay = nullptr;
+    saveAsAction = nullptr; // 初始化為 nullptr，只在放大視窗中使用
     //---------------------------------------------------------------
     statusLabel = new QLabel;
     statusLabel->setText (QStringLiteral("指標位置"));
