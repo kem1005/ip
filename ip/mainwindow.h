@@ -69,6 +69,9 @@ private slots:
     void b();
     void s();
     void showGeometryTransform();
+    //---------------------------------------------------------
+    void saveAsImage(); // 另存圖片功能
+    //---------------------------------------------------------------
 protected:
     void mouseMoveEvent (QMouseEvent * event);
     void mousePressEvent(QMouseEvent * event);
@@ -89,6 +92,9 @@ private:
     QAction *big;
     QAction *small;
     QAction *geometryAction;
+    //---------------------------------------------------------
+    QAction *saveAsAction; // 另存新檔動作
+    //---------------------------------------------------------------
     QLabel *statusLabel;
     QLabel *MousePosLabel;
     int x=300;

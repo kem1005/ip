@@ -80,6 +80,14 @@ void MainWindow::createActions1()
     geometryAction->setStatusTip (QStringLiteral("影像幾何轉換"));
     connect (geometryAction, SIGNAL (triggered()), this, SLOT (showGeometryTransform()));
     connect (exitAction, SIGNAL (triggered()),gWin, SLOT (close()));
+    
+    //---------------------------------------------------------
+    // 建立另存新檔動作
+    saveAsAction = new QAction (QStringLiteral("另存新檔(&S)"),this);
+    saveAsAction->setShortcut (tr("Ctrl+S"));
+    saveAsAction->setStatusTip (QStringLiteral("將圖片另存為新檔案"));
+    connect (saveAsAction, SIGNAL (triggered()), this, SLOT (saveAsImage()));
+    //---------------------------------------------------------------
 }
 
 void MainWindow::createActions2()
@@ -101,6 +109,9 @@ void MainWindow::createMenus1()
 {
     fileMenu = menuBar ()->addMenu (QStringLiteral("檔案&F"));
     fileMenu->addAction(openFileAction);
+    //---------------------------------------------------------
+    fileMenu->addAction(saveAsAction); // 加入另存新檔選項到檔案選單
+    //---------------------------------------------------------------
     fileMenu->addAction(geometryAction);
     fileMenu->addAction(exitAction);
 }
@@ -114,6 +125,9 @@ void MainWindow::createToolBars()
 {
     fileTool = addToolBar("file");
     fileTool->addAction (openFileAction);
+    //---------------------------------------------------------
+    fileTool->addAction (saveAsAction); // 加入另存新檔按鈕到工具列
+    //---------------------------------------------------------------
     fileTool->addAction (geometryAction);
     fileTool->addAction (big);
     fileTool->addAction (small);
@@ -154,6 +168,38 @@ void MainWindow:: showGeometryTransform()
     gWin->inWin->setPixmap (QPixmap:: fromImage (gWin->srcImg));
     gWin->show();
 }
+
+//---------------------------------------------------------
+// 另存圖片功能實作
+void MainWindow::saveAsImage()
+{
+    // 檢查是否有載入的圖片
+    if (img.isNull())
+    {
+        statusBar()->showMessage(QStringLiteral("沒有可儲存的圖片"), 3000);
+        return;
+    }
+    
+    // 開啟檔案對話框讓使用者選擇儲存位置和檔名
+    QString filePath = QFileDialog::getSaveFileName(this, 
+                                                     QStringLiteral("另存新檔"), 
+                                                     "", 
+                                                     "PNG Files (*.png);;JPEG Files (*.jpg);;BMP Files (*.bmp)");
+    
+    // 如果使用者有選擇檔案路徑，則儲存圖片
+    if (!filePath.isEmpty()) 
+    {
+        if (img.save(filePath))
+        {
+            statusBar()->showMessage(QStringLiteral("檔案已成功儲存至: ") + filePath, 3000);
+        }
+        else
+        {
+            statusBar()->showMessage(QStringLiteral("儲存失敗"), 3000);
+        }
+    }
+}
+//---------------------------------------------------------------
 
 void MainWindow::mouseMoveEvent (QMouseEvent * event)
 {
