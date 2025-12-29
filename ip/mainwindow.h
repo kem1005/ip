@@ -8,6 +8,11 @@
 #include <QToolBar>
 #include <QImage>
 #include <QLabel>
+//---------------------------------------------------------
+#include <QPoint>
+#include <QRect>
+#include <QPainter>
+//---------------------------------------------------------------
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -30,6 +35,9 @@ protected:
     void mouseMoveEvent (QMouseEvent * event);
     void mousePressEvent(QMouseEvent * event);
     void mouseReleaseEvent (QMouseEvent * event);
+    //---------------------------------------------------------
+    void paintEvent(QPaintEvent * event);
+    //---------------------------------------------------------------
 private:
     Widget *gWin;
     QWidget *central;
@@ -47,5 +55,11 @@ private:
     QLabel *MousePosLabel;
     int x=300;
     int y=200;
+    //---------------------------------------------------------
+    bool isSelecting;
+    QPoint selectionStart;
+    QPoint selectionEnd;
+    QRect selectionRect;
+    //---------------------------------------------------------------
 };
 #endif // MAINWINDOW_H

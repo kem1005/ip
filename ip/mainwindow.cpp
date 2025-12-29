@@ -10,6 +10,9 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
+    //---------------------------------------------------------
+    isSelecting = false;
+    //---------------------------------------------------------------
     statusLabel = new QLabel;
     statusLabel->setText (QStringLiteral("指標位置"));
     statusLabel->setFixedWidth (100);
@@ -152,6 +155,14 @@ void MainWindow::mouseMoveEvent (QMouseEvent * event)
         str += ("=" +QString::number(gray));
     }
     MousePosLabel->setText(str);
+    //---------------------------------------------------------
+    if (isSelecting)
+    {
+        selectionEnd = event->pos();
+        selectionRect = QRect(selectionStart, selectionEnd).normalized();
+        update();
+    }
+    //---------------------------------------------------------------
 }
 
 void MainWindow::mousePressEvent(QMouseEvent * event)
@@ -160,6 +171,15 @@ void MainWindow::mousePressEvent(QMouseEvent * event)
     if (event->button() == Qt::LeftButton)
     {
         statusBar()->showMessage(QStringLiteral("左鍵:")+str);
+        //---------------------------------------------------------
+        if (!img.isNull())
+        {
+            isSelecting = true;
+            selectionStart = event->pos();
+            selectionEnd = event->pos();
+            selectionRect = QRect();
+        }
+        //---------------------------------------------------------------
     }
     else if (event->button()== Qt::RightButton)
     {
@@ -174,6 +194,46 @@ void MainWindow::mouseReleaseEvent (QMouseEvent* event)
 {
     QString str = "(" + QString::number (event->x()) + ", " +QString::number (event->y()) +")";
     statusBar ()->showMessage (QStringLiteral("釋放:")+str);
+    //---------------------------------------------------------
+    if (isSelecting && event->button() == Qt::LeftButton)
+    {
+        isSelecting = false;
+        
+        if (selectionRect.width() > 10 && selectionRect.height() > 10 && !img.isNull())
+        {
+            QPoint imgPos = imgwin->pos();
+            QRect imgGeometry = imgwin->geometry();
+            
+            int selX = selectionRect.x() - imgPos.x();
+            int selY = selectionRect.y() - imgPos.y();
+            int selW = selectionRect.width();
+            int selH = selectionRect.height();
+            
+            if (selX >= 0 && selY >= 0 && selX + selW <= imgGeometry.width() && selY + selH <= imgGeometry.height())
+            {
+                double scaleX = (double)img.width() / imgwin->width();
+                double scaleY = (double)img.height() / imgwin->height();
+                
+                int imgX = selX * scaleX;
+                int imgY = selY * scaleY;
+                int imgW = selW * scaleX;
+                int imgH = selH * scaleY;
+                
+                QImage croppedImg = img.copy(imgX, imgY, imgW, imgH);
+                
+                QImage zoomedImg = croppedImg.scaled(imgW * 2, imgH * 2, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                
+                MainWindow *newIPWin = new MainWindow();
+                newIPWin->img = zoomedImg;
+                newIPWin->imgwin->setPixmap(QPixmap::fromImage(zoomedImg));
+                newIPWin->show();
+            }
+        }
+        
+        selectionRect = QRect();
+        update();
+    }
+    //---------------------------------------------------------------
 }
 
 void MainWindow::b(){
@@ -183,4 +243,17 @@ void MainWindow::s(){
      imgwin->resize(imgwin->width() * 0.8, imgwin->height() * 0.8);
 };
 
+//---------------------------------------------------------
+void MainWindow::paintEvent(QPaintEvent * event)
+{
+    QMainWindow::paintEvent(event);
+    
+    if (isSelecting && !selectionRect.isNull())
+    {
+        QPainter painter(this);
+        painter.setPen(QPen(Qt::blue, 2, Qt::DashLine));
+        painter.drawRect(selectionRect);
+    }
+}
+//---------------------------------------------------------------
 
