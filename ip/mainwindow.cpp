@@ -83,7 +83,7 @@ void MainWindow::createActions1()
     
     //---------------------------------------------------------
     // 建立另存新檔動作
-    saveAsAction = new QAction (QStringLiteral("另存新檔(&S)"),this);
+    saveAsAction = new QAction (QStringLiteral("另存新檔(&A)"),this);
     saveAsAction->setShortcut (tr("Ctrl+S"));
     saveAsAction->setStatusTip (QStringLiteral("將圖片另存為新檔案"));
     connect (saveAsAction, SIGNAL (triggered()), this, SLOT (saveAsImage()));
