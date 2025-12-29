@@ -3,13 +3,28 @@
 #include <QMenuBar>
 #include <QFileDialog>
 #include <QDebug>
+//---------------------------------------------------------
+#include <QResizeEvent>
+//---------------------------------------------------------------
 
 #include <mouse.h>
 #include <gwidget.h>
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
+//---------------------------------------------------------
+// 建構函式：isZoomedWindow 參數用於區分主視窗和放大後的子視窗
+MainWindow::MainWindow(QWidget *parent, bool isZoomedWindow)
+    : QMainWindow(parent), isZoomedWindow(isZoomedWindow) // 初始化成員變數
+//---------------------------------------------------------------
 {
+    //---------------------------------------------------------
+    isSelecting = false;
+    overlay = nullptr;
+    saveAsAction = nullptr; // 初始化為 nullptr，只在放大視窗中使用
+    // 初始化畫筆相關變數
+    isDrawing = false;
+    penColor = Qt::red; // 預設紅色
+    penWidth = 5; // 預設筆寬 5px
+    //---------------------------------------------------------------
     statusLabel = new QLabel;
     statusLabel->setText (QStringLiteral("指標位置"));
     statusLabel->setFixedWidth (100);
@@ -35,13 +50,36 @@ MainWindow::MainWindow(QWidget *parent)
     imgwin->setPixmap (*initPixmap);
     mainLayout->addWidget (imgwin);
     setCentralWidget (central);
-    createActions1();
-    createActions2();
-    createMenus1();
-    createMenus2();
-    createToolBars();
-    b();
-    s();
+    //---------------------------------------------------------
+    // 只在主視窗建立覆蓋層，放大視窗不需要選取功能
+    if (!isZoomedWindow)
+    {
+        // Create overlay for selection rectangle on top of central widget
+        overlay = new SelectionOverlay(central);
+        overlay->setGeometry(0, 0, central->width(), central->height());
+        overlay->raise(); // Make sure overlay is on top
+        overlay->show();
+    }
+
+    // 根據視窗類型建立不同的功能
+    if (isZoomedWindow)
+    {
+        // 放大視窗只需要另存新檔功能
+        createZoomedWindowActions();
+        createZoomedWindowMenus();
+    }
+    else
+    {
+        // 主視窗建立完整功能
+        createActions1();
+        createActions2();
+        createMenus1();
+        createMenus2();
+        createToolBars();
+        b();
+        s();
+    }
+    //---------------------------------------------------------------
 }
 
 MainWindow::~MainWindow() {
@@ -104,6 +142,73 @@ void MainWindow::createToolBars()
     fileTool->addAction (big);
     fileTool->addAction (small);
 }
+
+//---------------------------------------------------------
+// 建立放大視窗專用的動作（僅另存新檔和結束）
+void MainWindow::createZoomedWindowActions()
+{
+    // 建立另存新檔動作
+    saveAsAction = new QAction (QStringLiteral("另存新檔(&A)"),this);
+    saveAsAction->setShortcut (tr("Ctrl+S"));
+    saveAsAction->setStatusTip (QStringLiteral("將圖片另存為新檔案"));
+    connect (saveAsAction, SIGNAL (triggered()), this, SLOT (saveAsImage()));
+
+    // 建立結束動作
+    exitAction = new QAction (QStringLiteral("關閉(&Q)"),this);
+    exitAction->setShortcut (tr("Ctrl+Q"));
+    exitAction->setStatusTip (QStringLiteral("關閉視窗"));
+    connect (exitAction, SIGNAL (triggered()), this, SLOT (close()));
+
+    // 建立畫筆顏色動作
+    redPenAction = new QAction (QStringLiteral("紅色(&R)"),this);
+    redPenAction->setStatusTip (QStringLiteral("使用紅色畫筆"));
+    redPenAction->setData(QColor(Qt::red));
+    connect (redPenAction, SIGNAL (triggered()), this, SLOT (setPenColor()));
+
+    bluePenAction = new QAction (QStringLiteral("藍色(&B)"),this);
+    bluePenAction->setStatusTip (QStringLiteral("使用藍色畫筆"));
+    bluePenAction->setData(QColor(Qt::blue));
+    connect (bluePenAction, SIGNAL (triggered()), this, SLOT (setPenColor()));
+
+    greenPenAction = new QAction (QStringLiteral("綠色(&G)"),this);
+    greenPenAction->setStatusTip (QStringLiteral("使用綠色畫筆"));
+    greenPenAction->setData(QColor(Qt::green));
+    connect (greenPenAction, SIGNAL (triggered()), this, SLOT (setPenColor()));
+
+    blackPenAction = new QAction (QStringLiteral("黑色(&K)"),this);
+    blackPenAction->setStatusTip (QStringLiteral("使用黑色畫筆"));
+    blackPenAction->setData(QColor(Qt::black));
+    connect (blackPenAction, SIGNAL (triggered()), this, SLOT (setPenColor()));
+
+    yellowPenAction = new QAction (QStringLiteral("黃色(&Y)"),this);
+    yellowPenAction->setStatusTip (QStringLiteral("使用黃色畫筆"));
+    yellowPenAction->setData(QColor(Qt::yellow));
+    connect (yellowPenAction, SIGNAL (triggered()), this, SLOT (setPenColor()));
+
+    whitePenAction = new QAction (QStringLiteral("白色(&W)"),this);
+    whitePenAction->setStatusTip (QStringLiteral("使用白色畫筆"));
+    whitePenAction->setData(QColor(Qt::white));
+    connect (whitePenAction, SIGNAL (triggered()), this, SLOT (setPenColor()));
+}
+
+// 建立放大視窗專用的選單（僅檔案選單）
+void MainWindow::createZoomedWindowMenus()
+{
+    fileMenu = menuBar ()->addMenu (QStringLiteral("檔案&F"));
+    fileMenu->addAction(saveAsAction); // 另存新檔
+    fileMenu->addAction(exitAction);    // 關閉視窗
+
+    // 新增畫筆顏色子選單
+    QMenu *penColorMenu = fileMenu->addMenu(QStringLiteral("畫筆顏色(&C)"));
+    penColorMenu->addAction(redPenAction);
+    penColorMenu->addAction(bluePenAction);
+    penColorMenu->addAction(greenPenAction);
+    penColorMenu->addAction(blackPenAction);
+    penColorMenu->addAction(yellowPenAction);
+    penColorMenu->addAction(whitePenAction);
+}
+//---------------------------------------------------------------
+
 void MainWindow::loadFile (QString filename)
 {
     qDebug() <<QString("file name: %1").arg(filename);
@@ -141,6 +246,56 @@ void MainWindow:: showGeometryTransform()
     gWin->show();
 }
 
+//---------------------------------------------------------
+// 另存圖片功能實作
+void MainWindow::saveAsImage()
+{
+    // 檢查是否有載入的圖片
+    if (img.isNull())
+    {
+        statusBar()->showMessage(QStringLiteral("沒有可儲存的圖片"), 3000);
+        return;
+    }
+
+    // 開啟檔案對話框讓使用者選擇儲存位置和檔名
+    QString filePath = QFileDialog::getSaveFileName(this,
+                                                     QStringLiteral("另存新檔"),
+                                                     "",
+                                                     "PNG Files (*.png);;JPEG Files (*.jpg);;BMP Files (*.bmp)");
+
+    // 如果使用者有選擇檔案路徑，則儲存圖片
+    if (!filePath.isEmpty())
+    {
+        if (img.save(filePath))
+        {
+            statusBar()->showMessage(QStringLiteral("檔案已成功儲存至: ") + filePath, 3000);
+        }
+        else
+        {
+            statusBar()->showMessage(QStringLiteral("儲存失敗"), 3000);
+        }
+    }
+}
+
+// 設定畫筆顏色（僅用於放大視窗）
+void MainWindow::setPenColor()
+{
+    QAction *action = qobject_cast<QAction*>(sender());
+    if (action)
+    {
+        penColor = action->data().value<QColor>();
+        QString colorName;
+        if (penColor == Qt::red) colorName = QStringLiteral("紅色");
+        else if (penColor == Qt::blue) colorName = QStringLiteral("藍色");
+        else if (penColor == Qt::green) colorName = QStringLiteral("綠色");
+        else if (penColor == Qt::black) colorName = QStringLiteral("黑色");
+        else if (penColor == Qt::yellow) colorName = QStringLiteral("黃色");
+        else if (penColor == Qt::white) colorName = QStringLiteral("白色");
+        statusBar()->showMessage(QStringLiteral("畫筆顏色：") + colorName, 2000);
+    }
+}
+//---------------------------------------------------------------
+
 void MainWindow::mouseMoveEvent (QMouseEvent * event)
 {
     int x = event->x();
@@ -152,6 +307,57 @@ void MainWindow::mouseMoveEvent (QMouseEvent * event)
         str += ("=" +QString::number(gray));
     }
     MousePosLabel->setText(str);
+    //---------------------------------------------------------
+    // 主視窗處理選取功能
+    if (!isZoomedWindow && isSelecting)
+    {
+        selectionEnd = event->pos();
+        selectionRect = QRect(selectionStart, selectionEnd).normalized();
+
+        // Convert MainWindow coordinates to central widget coordinates
+        QPoint centralTopLeft = central->mapFrom(this, selectionRect.topLeft());
+        QPoint centralBottomRight = central->mapFrom(this, selectionRect.bottomRight());
+        QRect centralRect(centralTopLeft, centralBottomRight);
+
+        overlay->setSelectionRect(centralRect, true);
+    }
+    // 放大視窗處理繪圖功能
+    else if (isZoomedWindow && isDrawing)
+    {
+        // 計算圖片上的座標
+        QRect imgGeometry = imgwin->geometry();
+        int menuHeight = menuBar()->height();
+        int statusHeight = statusBar()->height();
+        
+        QPoint currentPos = event->pos();
+        int imgX = currentPos.x() - imgGeometry.x();
+        int imgY = currentPos.y() - imgGeometry.y() - menuHeight - statusHeight;
+        
+        // 轉換為圖片實際座標
+        if (imgwin->width() > 0 && imgwin->height() > 0 && !img.isNull())
+        {
+            double scaleX = (double)img.width() / imgwin->width();
+            double scaleY = (double)img.height() / imgwin->height();
+            
+            int realX = imgX * scaleX;
+            int realY = imgY * scaleY;
+            int lastRealX = lastDrawPoint.x() * scaleX;
+            int lastRealY = lastDrawPoint.y() * scaleY;
+            
+            if (realX >= 0 && realX < img.width() && realY >= 0 && realY < img.height())
+            {
+                // 在圖片上繪製線條
+                QPainter painter(&img);
+                painter.setPen(QPen(penColor, penWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+                painter.drawLine(lastRealX, lastRealY, realX, realY);
+                
+                // 更新顯示
+                imgwin->setPixmap(QPixmap::fromImage(img));
+                lastDrawPoint = QPoint(imgX, imgY);
+            }
+        }
+    }
+    //---------------------------------------------------------------
 }
 
 void MainWindow::mousePressEvent(QMouseEvent * event)
@@ -160,6 +366,29 @@ void MainWindow::mousePressEvent(QMouseEvent * event)
     if (event->button() == Qt::LeftButton)
     {
         statusBar()->showMessage(QStringLiteral("左鍵:")+str);
+        //---------------------------------------------------------
+        // 主視窗啟用選取功能
+        if (!isZoomedWindow && !img.isNull())
+        {
+            isSelecting = true;
+            selectionStart = event->pos();
+            selectionEnd = event->pos();
+            selectionRect = QRect();
+        }
+        // 放大視窗啟用繪圖功能
+        else if (isZoomedWindow && !img.isNull())
+        {
+            isDrawing = true;
+            QRect imgGeometry = imgwin->geometry();
+            int menuHeight = menuBar()->height();
+            int statusHeight = statusBar()->height();
+            
+            QPoint pressPos = event->pos();
+            int imgX = pressPos.x() - imgGeometry.x();
+            int imgY = pressPos.y() - imgGeometry.y() - menuHeight - statusHeight;
+            lastDrawPoint = QPoint(imgX, imgY);
+        }
+        //---------------------------------------------------------------
     }
     else if (event->button()== Qt::RightButton)
     {
@@ -174,6 +403,66 @@ void MainWindow::mouseReleaseEvent (QMouseEvent* event)
 {
     QString str = "(" + QString::number (event->x()) + ", " +QString::number (event->y()) +")";
     statusBar ()->showMessage (QStringLiteral("釋放:")+str);
+    //---------------------------------------------------------
+    // 主視窗處理放大功能
+    if (!isZoomedWindow && isSelecting && event->button() == Qt::LeftButton)
+    {
+        isSelecting = false;
+
+        if (selectionRect.width() > 10 && selectionRect.height() > 10 && !img.isNull())
+        {
+            QRect imgGeometry = imgwin->geometry();
+
+            int menuHeight = menuBar()->height();
+            int toolbarHeight = (fileTool ? fileTool->height() : 0);
+            int statusHeight = statusBar()->height();
+
+            int selX = selectionRect.x() - imgGeometry.x();
+            int selY = selectionRect.y() - imgGeometry.y() - menuHeight - toolbarHeight - statusHeight;
+            int selW = selectionRect.width();
+            int selH = selectionRect.height();
+
+            if (imgwin->width() > 0 && imgwin->height() > 0 &&
+                selX >= 0 && selY >= 0 && selX + selW <= imgGeometry.width() && selY + selH <= imgGeometry.height())
+            {
+                double scaleX = (double)img.width() / imgwin->width();
+                double scaleY = (double)img.height() / imgwin->height();
+
+                int imgX = selX * scaleX;
+                int imgY = selY * scaleY;
+                int imgW = selW * scaleX;
+                int imgH = selH * scaleY;
+
+                QImage croppedImg = img.copy(imgX, imgY, imgW, imgH);
+
+                QImage zoomedImg = croppedImg.scaled(imgW * 2, imgH * 2, Qt::KeepAspectRatio, Qt::FastTransformation);
+
+                //---------------------------------------------------------
+                // 建立放大視窗，傳入 true 表示這是放大後的子視窗
+                MainWindow *newIPWin = new MainWindow(nullptr, true);
+                //---------------------------------------------------------------
+                newIPWin->setAttribute(Qt::WA_DeleteOnClose);
+                newIPWin->img = zoomedImg;
+                newIPWin->imgwin->setPixmap(QPixmap::fromImage(zoomedImg));
+                //---------------------------------------------------------
+                newIPWin->setWindowTitle(QStringLiteral("放大視窗 - 2x")); // 設定視窗標題
+                //---------------------------------------------------------------
+                newIPWin->show();
+            }
+        }
+
+        selectionRect = QRect();
+        //---------------------------------------------------------
+        overlay->setSelectionRect(QRect(), false);
+        //---------------------------------------------------------------
+        update();
+    }
+    // 放大視窗處理繪圖結束
+    else if (isZoomedWindow && isDrawing && event->button() == Qt::LeftButton)
+    {
+        isDrawing = false;
+    }
+    //---------------------------------------------------------------
 }
 
 void MainWindow::b(){
@@ -183,4 +472,16 @@ void MainWindow::s(){
      imgwin->resize(imgwin->width() * 0.8, imgwin->height() * 0.8);
 };
 
+//---------------------------------------------------------
+void MainWindow::resizeEvent(QResizeEvent * event)
+{
+    QMainWindow::resizeEvent(event);
+    // 只在主視窗更新覆蓋層
+    if (!isZoomedWindow && overlay)
+    {
+        // Update overlay geometry to match central widget
+        overlay->setGeometry(0, 0, central->width(), central->height());
+    }
+}
+//---------------------------------------------------------------
 
