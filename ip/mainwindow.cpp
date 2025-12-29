@@ -19,7 +19,7 @@ MainWindow::MainWindow(QWidget *parent, bool isZoomedWindow)
     //---------------------------------------------------------
     isSelecting = false;
     overlay = nullptr;
-    saveAsAction = nullptr; // 初始化為 nullptr
+    saveAsAction = nullptr; // 初始化為 nullptr，只在放大視窗中使用
     //---------------------------------------------------------------
     statusLabel = new QLabel;
     statusLabel->setText (QStringLiteral("指標位置"));
@@ -56,7 +56,7 @@ MainWindow::MainWindow(QWidget *parent, bool isZoomedWindow)
         overlay->raise(); // Make sure overlay is on top
         overlay->show();
     }
-    
+
     // 根據視窗類型建立不同的功能
     if (isZoomedWindow)
     {
@@ -100,14 +100,6 @@ void MainWindow::createActions1()
     geometryAction->setStatusTip (QStringLiteral("影像幾何轉換"));
     connect (geometryAction, SIGNAL (triggered()), this, SLOT (showGeometryTransform()));
     connect (exitAction, SIGNAL (triggered()),gWin, SLOT (close()));
-    
-    //---------------------------------------------------------
-    // 建立另存新檔動作
-    saveAsAction = new QAction (QStringLiteral("另存新檔(&A)"),this);
-    saveAsAction->setShortcut (tr("Ctrl+S"));
-    saveAsAction->setStatusTip (QStringLiteral("將圖片另存為新檔案"));
-    connect (saveAsAction, SIGNAL (triggered()), this, SLOT (saveAsImage()));
-    //---------------------------------------------------------------
 }
 
 void MainWindow::createActions2()
@@ -129,9 +121,6 @@ void MainWindow::createMenus1()
 {
     fileMenu = menuBar ()->addMenu (QStringLiteral("檔案&F"));
     fileMenu->addAction(openFileAction);
-    //---------------------------------------------------------
-    fileMenu->addAction(saveAsAction); // 加入另存新檔選項到檔案選單
-    //---------------------------------------------------------------
     fileMenu->addAction(geometryAction);
     fileMenu->addAction(exitAction);
 }
@@ -145,9 +134,6 @@ void MainWindow::createToolBars()
 {
     fileTool = addToolBar("file");
     fileTool->addAction (openFileAction);
-    //---------------------------------------------------------
-    fileTool->addAction (saveAsAction); // 加入另存新檔按鈕到工具列
-    //---------------------------------------------------------------
     fileTool->addAction (geometryAction);
     fileTool->addAction (big);
     fileTool->addAction (small);
@@ -162,7 +148,7 @@ void MainWindow::createZoomedWindowActions()
     saveAsAction->setShortcut (tr("Ctrl+S"));
     saveAsAction->setStatusTip (QStringLiteral("將圖片另存為新檔案"));
     connect (saveAsAction, SIGNAL (triggered()), this, SLOT (saveAsImage()));
-    
+
     // 建立結束動作
     exitAction = new QAction (QStringLiteral("關閉(&Q)"),this);
     exitAction->setShortcut (tr("Ctrl+Q"));
@@ -226,15 +212,15 @@ void MainWindow::saveAsImage()
         statusBar()->showMessage(QStringLiteral("沒有可儲存的圖片"), 3000);
         return;
     }
-    
+
     // 開啟檔案對話框讓使用者選擇儲存位置和檔名
-    QString filePath = QFileDialog::getSaveFileName(this, 
-                                                     QStringLiteral("另存新檔"), 
-                                                     "", 
+    QString filePath = QFileDialog::getSaveFileName(this,
+                                                     QStringLiteral("另存新檔"),
+                                                     "",
                                                      "PNG Files (*.png);;JPEG Files (*.jpg);;BMP Files (*.bmp)");
-    
+
     // 如果使用者有選擇檔案路徑，則儲存圖片
-    if (!filePath.isEmpty()) 
+    if (!filePath.isEmpty())
     {
         if (img.save(filePath))
         {
@@ -265,12 +251,12 @@ void MainWindow::mouseMoveEvent (QMouseEvent * event)
     {
         selectionEnd = event->pos();
         selectionRect = QRect(selectionStart, selectionEnd).normalized();
-        
+
         // Convert MainWindow coordinates to central widget coordinates
         QPoint centralTopLeft = central->mapFrom(this, selectionRect.topLeft());
         QPoint centralBottomRight = central->mapFrom(this, selectionRect.bottomRight());
         QRect centralRect(centralTopLeft, centralBottomRight);
-        
+
         overlay->setSelectionRect(centralRect, true);
     }
     //---------------------------------------------------------------
@@ -311,35 +297,35 @@ void MainWindow::mouseReleaseEvent (QMouseEvent* event)
     if (!isZoomedWindow && isSelecting && event->button() == Qt::LeftButton)
     {
         isSelecting = false;
-        
+
         if (selectionRect.width() > 10 && selectionRect.height() > 10 && !img.isNull())
         {
             QRect imgGeometry = imgwin->geometry();
-            
+
             int menuHeight = menuBar()->height();
             int toolbarHeight = (fileTool ? fileTool->height() : 0);
             int statusHeight = statusBar()->height();
-            
+
             int selX = selectionRect.x() - imgGeometry.x();
             int selY = selectionRect.y() - imgGeometry.y() - menuHeight - toolbarHeight - statusHeight;
             int selW = selectionRect.width();
             int selH = selectionRect.height();
-            
-            if (imgwin->width() > 0 && imgwin->height() > 0 && 
+
+            if (imgwin->width() > 0 && imgwin->height() > 0 &&
                 selX >= 0 && selY >= 0 && selX + selW <= imgGeometry.width() && selY + selH <= imgGeometry.height())
             {
                 double scaleX = (double)img.width() / imgwin->width();
                 double scaleY = (double)img.height() / imgwin->height();
-                
+
                 int imgX = selX * scaleX;
                 int imgY = selY * scaleY;
                 int imgW = selW * scaleX;
                 int imgH = selH * scaleY;
-                
+
                 QImage croppedImg = img.copy(imgX, imgY, imgW, imgH);
-                
+
                 QImage zoomedImg = croppedImg.scaled(imgW * 2, imgH * 2, Qt::KeepAspectRatio, Qt::FastTransformation);
-                
+
                 //---------------------------------------------------------
                 // 建立放大視窗，傳入 true 表示這是放大後的子視窗
                 MainWindow *newIPWin = new MainWindow(nullptr, true);
@@ -353,7 +339,7 @@ void MainWindow::mouseReleaseEvent (QMouseEvent* event)
                 newIPWin->show();
             }
         }
-        
+
         selectionRect = QRect();
         //---------------------------------------------------------
         overlay->setSelectionRect(QRect(), false);
