@@ -201,15 +201,19 @@ void MainWindow::mouseReleaseEvent (QMouseEvent* event)
         
         if (selectionRect.width() > 10 && selectionRect.height() > 10 && !img.isNull())
         {
-            QPoint imgPos = imgwin->pos();
             QRect imgGeometry = imgwin->geometry();
             
-            int selX = selectionRect.x() - imgPos.x();
-            int selY = selectionRect.y() - imgPos.y();
+            int menuHeight = menuBar()->height();
+            int toolbarHeight = (fileTool ? fileTool->height() : 0);
+            int statusHeight = statusBar()->height();
+            
+            int selX = selectionRect.x() - imgGeometry.x();
+            int selY = selectionRect.y() - imgGeometry.y() - menuHeight - toolbarHeight - statusHeight;
             int selW = selectionRect.width();
             int selH = selectionRect.height();
             
-            if (selX >= 0 && selY >= 0 && selX + selW <= imgGeometry.width() && selY + selH <= imgGeometry.height())
+            if (imgwin->width() > 0 && imgwin->height() > 0 && 
+                selX >= 0 && selY >= 0 && selX + selW <= imgGeometry.width() && selY + selH <= imgGeometry.height())
             {
                 double scaleX = (double)img.width() / imgwin->width();
                 double scaleY = (double)img.height() / imgwin->height();
@@ -221,9 +225,10 @@ void MainWindow::mouseReleaseEvent (QMouseEvent* event)
                 
                 QImage croppedImg = img.copy(imgX, imgY, imgW, imgH);
                 
-                QImage zoomedImg = croppedImg.scaled(imgW * 2, imgH * 2, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                QImage zoomedImg = croppedImg.scaled(imgW * 2, imgH * 2, Qt::KeepAspectRatio, Qt::FastTransformation);
                 
                 MainWindow *newIPWin = new MainWindow();
+                newIPWin->setAttribute(Qt::WA_DeleteOnClose);
                 newIPWin->img = zoomedImg;
                 newIPWin->imgwin->setPixmap(QPixmap::fromImage(zoomedImg));
                 newIPWin->show();
