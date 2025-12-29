@@ -99,14 +99,6 @@ void MainWindow::createActions1()
     geometryAction->setStatusTip (QStringLiteral("影像幾何轉換"));
     connect (geometryAction, SIGNAL (triggered()), this, SLOT (showGeometryTransform()));
     connect (exitAction, SIGNAL (triggered()),gWin, SLOT (close()));
-    
-    //---------------------------------------------------------
-    // 建立另存新檔動作
-    saveAsAction = new QAction (QStringLiteral("另存新檔(&A)"),this);
-    saveAsAction->setShortcut (tr("Ctrl+S"));
-    saveAsAction->setStatusTip (QStringLiteral("將圖片另存為新檔案"));
-    connect (saveAsAction, SIGNAL (triggered()), this, SLOT (saveAsImage()));
-    //---------------------------------------------------------------
 }
 
 void MainWindow::createActions2()
@@ -128,9 +120,6 @@ void MainWindow::createMenus1()
 {
     fileMenu = menuBar ()->addMenu (QStringLiteral("檔案&F"));
     fileMenu->addAction(openFileAction);
-    //---------------------------------------------------------
-    fileMenu->addAction(saveAsAction); // 加入另存新檔選項到檔案選單
-    //---------------------------------------------------------------
     fileMenu->addAction(geometryAction);
     fileMenu->addAction(exitAction);
 }
@@ -144,9 +133,6 @@ void MainWindow::createToolBars()
 {
     fileTool = addToolBar("file");
     fileTool->addAction (openFileAction);
-    //---------------------------------------------------------
-    fileTool->addAction (saveAsAction); // 加入另存新檔按鈕到工具列
-    //---------------------------------------------------------------
     fileTool->addAction (geometryAction);
     fileTool->addAction (big);
     fileTool->addAction (small);
