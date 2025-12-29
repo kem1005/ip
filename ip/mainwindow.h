@@ -56,13 +56,19 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    //---------------------------------------------------------
+    MainWindow(QWidget *parent = nullptr, bool isZoomedWindow = false); // 增加參數區分主視窗和放大視窗
+    //---------------------------------------------------------------
     ~MainWindow();
     void createActions1();
     void createActions2();
     void createMenus1();
     void createMenus2();
     void createToolBars();
+    //---------------------------------------------------------
+    void createZoomedWindowActions(); // 建立放大視窗的動作（僅另存新檔）
+    void createZoomedWindowMenus(); // 建立放大視窗的選單（僅檔案選單）
+    //---------------------------------------------------------------
     void loadFile (QString filename);
 private slots:
     void showOpenFile();
@@ -105,6 +111,7 @@ private:
     QPoint selectionEnd;
     QRect selectionRect;
     SelectionOverlay *overlay;
+    bool isZoomedWindow; // 標記是否為放大的子視窗
     //---------------------------------------------------------------
 };
 #endif // MAINWINDOW_H

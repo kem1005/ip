@@ -10,8 +10,11 @@
 #include <mouse.h>
 #include <gwidget.h>
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
+//---------------------------------------------------------
+// 建構函式：isZoomedWindow 參數用於區分主視窗和放大後的子視窗
+MainWindow::MainWindow(QWidget *parent, bool isZoomedWindow)
+    : QMainWindow(parent), isZoomedWindow(isZoomedWindow) // 初始化成員變數
+//---------------------------------------------------------------
 {
     //---------------------------------------------------------
     isSelecting = false;
@@ -43,19 +46,35 @@ MainWindow::MainWindow(QWidget *parent)
     mainLayout->addWidget (imgwin);
     setCentralWidget (central);
     //---------------------------------------------------------
-    // Create overlay for selection rectangle on top of central widget
-    overlay = new SelectionOverlay(central);
-    overlay->setGeometry(0, 0, central->width(), central->height());
-    overlay->raise(); // Make sure overlay is on top
-    overlay->show();
+    // 只在主視窗建立覆蓋層，放大視窗不需要選取功能
+    if (!isZoomedWindow)
+    {
+        // Create overlay for selection rectangle on top of central widget
+        overlay = new SelectionOverlay(central);
+        overlay->setGeometry(0, 0, central->width(), central->height());
+        overlay->raise(); // Make sure overlay is on top
+        overlay->show();
+    }
+    
+    // 根據視窗類型建立不同的功能
+    if (isZoomedWindow)
+    {
+        // 放大視窗只需要另存新檔功能
+        createZoomedWindowActions();
+        createZoomedWindowMenus();
+    }
+    else
+    {
+        // 主視窗建立完整功能
+        createActions1();
+        createActions2();
+        createMenus1();
+        createMenus2();
+        createToolBars();
+        b();
+        s();
+    }
     //---------------------------------------------------------------
-    createActions1();
-    createActions2();
-    createMenus1();
-    createMenus2();
-    createToolBars();
-    b();
-    s();
 }
 
 MainWindow::~MainWindow() {
@@ -132,6 +151,33 @@ void MainWindow::createToolBars()
     fileTool->addAction (big);
     fileTool->addAction (small);
 }
+
+//---------------------------------------------------------
+// 建立放大視窗專用的動作（僅另存新檔和結束）
+void MainWindow::createZoomedWindowActions()
+{
+    // 建立另存新檔動作
+    saveAsAction = new QAction (QStringLiteral("另存新檔(&A)"),this);
+    saveAsAction->setShortcut (tr("Ctrl+S"));
+    saveAsAction->setStatusTip (QStringLiteral("將圖片另存為新檔案"));
+    connect (saveAsAction, SIGNAL (triggered()), this, SLOT (saveAsImage()));
+    
+    // 建立結束動作
+    exitAction = new QAction (QStringLiteral("關閉(&Q)"),this);
+    exitAction->setShortcut (tr("Ctrl+Q"));
+    exitAction->setStatusTip (QStringLiteral("關閉視窗"));
+    connect (exitAction, SIGNAL (triggered()), this, SLOT (close()));
+}
+
+// 建立放大視窗專用的選單（僅檔案選單）
+void MainWindow::createZoomedWindowMenus()
+{
+    fileMenu = menuBar ()->addMenu (QStringLiteral("檔案&F"));
+    fileMenu->addAction(saveAsAction); // 另存新檔
+    fileMenu->addAction(exitAction);    // 關閉視窗
+}
+//---------------------------------------------------------------
+
 void MainWindow::loadFile (QString filename)
 {
     qDebug() <<QString("file name: %1").arg(filename);
@@ -213,7 +259,8 @@ void MainWindow::mouseMoveEvent (QMouseEvent * event)
     }
     MousePosLabel->setText(str);
     //---------------------------------------------------------
-    if (isSelecting)
+    // 只在主視窗處理選取功能
+    if (!isZoomedWindow && isSelecting)
     {
         selectionEnd = event->pos();
         selectionRect = QRect(selectionStart, selectionEnd).normalized();
@@ -235,7 +282,8 @@ void MainWindow::mousePressEvent(QMouseEvent * event)
     {
         statusBar()->showMessage(QStringLiteral("左鍵:")+str);
         //---------------------------------------------------------
-        if (!img.isNull())
+        // 只在主視窗啟用選取功能
+        if (!isZoomedWindow && !img.isNull())
         {
             isSelecting = true;
             selectionStart = event->pos();
@@ -258,7 +306,8 @@ void MainWindow::mouseReleaseEvent (QMouseEvent* event)
     QString str = "(" + QString::number (event->x()) + ", " +QString::number (event->y()) +")";
     statusBar ()->showMessage (QStringLiteral("釋放:")+str);
     //---------------------------------------------------------
-    if (isSelecting && event->button() == Qt::LeftButton)
+    // 只在主視窗處理放大功能
+    if (!isZoomedWindow && isSelecting && event->button() == Qt::LeftButton)
     {
         isSelecting = false;
         
@@ -290,10 +339,16 @@ void MainWindow::mouseReleaseEvent (QMouseEvent* event)
                 
                 QImage zoomedImg = croppedImg.scaled(imgW * 2, imgH * 2, Qt::KeepAspectRatio, Qt::FastTransformation);
                 
-                MainWindow *newIPWin = new MainWindow();
+                //---------------------------------------------------------
+                // 建立放大視窗，傳入 true 表示這是放大後的子視窗
+                MainWindow *newIPWin = new MainWindow(nullptr, true);
+                //---------------------------------------------------------------
                 newIPWin->setAttribute(Qt::WA_DeleteOnClose);
                 newIPWin->img = zoomedImg;
                 newIPWin->imgwin->setPixmap(QPixmap::fromImage(zoomedImg));
+                //---------------------------------------------------------
+                newIPWin->setWindowTitle(QStringLiteral("放大視窗 - 2x")); // 設定視窗標題
+                //---------------------------------------------------------------
                 newIPWin->show();
             }
         }
@@ -318,7 +373,8 @@ void MainWindow::s(){
 void MainWindow::resizeEvent(QResizeEvent * event)
 {
     QMainWindow::resizeEvent(event);
-    if (overlay)
+    // 只在主視窗更新覆蓋層
+    if (!isZoomedWindow && overlay)
     {
         // Update overlay geometry to match central widget
         overlay->setGeometry(0, 0, central->width(), central->height());
