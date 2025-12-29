@@ -2,12 +2,15 @@
 #define MAINWINDOW_H
 #include "gwidget.h"
 #include "mouse.h"
+#include "zoomwindow.h"
 #include <QMainWindow>
 #include <QACtion>
 #include <QMenu>
 #include <QToolBar>
 #include <QImage>
 #include <QLabel>
+#include <QRubberBand>
+#include <QRect>
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -26,6 +29,7 @@ private slots:
     void b();
     void s();
     void showGeometryTransform();
+    void openZoomWindow();
 protected:
     void mouseMoveEvent (QMouseEvent * event);
     void mousePressEvent(QMouseEvent * event);
@@ -45,6 +49,9 @@ private:
     QAction *geometryAction;
     QLabel *statusLabel;
     QLabel *MousePosLabel;
+    QRubberBand *rubberBand;
+    QPoint selectionOrigin;
+    bool isSelecting;
     int x=300;
     int y=200;
 };

@@ -12,12 +12,14 @@ SOURCES += \
     gwidget.cpp \
     main.cpp \
     mainwindow.cpp \
-    mouse.cpp
+    mouse.cpp \
+    zoomwindow.cpp
 
 HEADERS += \
     gwidget.h \
     mainwindow.h \
-    mouse.h
+    mouse.h \
+    zoomwindow.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

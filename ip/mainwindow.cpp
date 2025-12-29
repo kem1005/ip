@@ -8,7 +8,7 @@
 #include <gwidget.h>
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
+    : QMainWindow(parent), rubberBand(nullptr), isSelecting(false)
 {
     statusLabel = new QLabel;
     statusLabel->setText (QStringLiteral("指標位置"));
@@ -152,6 +152,11 @@ void MainWindow::mouseMoveEvent (QMouseEvent * event)
         str += ("=" +QString::number(gray));
     }
     MousePosLabel->setText(str);
+    
+    // Update rubber band during selection
+    if (isSelecting && rubberBand) {
+        rubberBand->setGeometry(QRect(selectionOrigin, event->pos()).normalized());
+    }
 }
 
 void MainWindow::mousePressEvent(QMouseEvent * event)
@@ -160,6 +165,18 @@ void MainWindow::mousePressEvent(QMouseEvent * event)
     if (event->button() == Qt::LeftButton)
     {
         statusBar()->showMessage(QStringLiteral("左鍵:")+str);
+        
+        // Start selection if clicking on image area
+        QPoint imgPos = imgwin->mapFrom(this, event->pos());
+        if (!img.isNull() && imgwin->geometry().contains(event->pos())) {
+            isSelecting = true;
+            selectionOrigin = event->pos();
+            if (!rubberBand) {
+                rubberBand = new QRubberBand(QRubberBand::Rectangle, this);
+            }
+            rubberBand->setGeometry(QRect(selectionOrigin, QSize()));
+            rubberBand->show();
+        }
     }
     else if (event->button()== Qt::RightButton)
     {
@@ -174,6 +191,18 @@ void MainWindow::mouseReleaseEvent (QMouseEvent* event)
 {
     QString str = "(" + QString::number (event->x()) + ", " +QString::number (event->y()) +")";
     statusBar ()->showMessage (QStringLiteral("釋放:")+str);
+    
+    // Handle selection completion
+    if (isSelecting && rubberBand && event->button() == Qt::LeftButton) {
+        isSelecting = false;
+        QRect selection = rubberBand->geometry();
+        rubberBand->hide();
+        
+        // Only open zoom window if selection is large enough
+        if (selection.width() > 10 && selection.height() > 10) {
+            openZoomWindow();
+        }
+    }
 }
 
 void MainWindow::b(){
@@ -183,4 +212,49 @@ void MainWindow::s(){
      imgwin->resize(imgwin->width() * 0.8, imgwin->height() * 0.8);
 };
 
+void MainWindow::openZoomWindow()
+{
+    if (img.isNull() || !rubberBand) {
+        return;
+    }
+    
+    // Get the selection rectangle
+    QRect selection = rubberBand->geometry();
+    
+    // Convert selection coordinates to image coordinates
+    QPoint imgTopLeft = imgwin->mapFrom(this, selection.topLeft());
+    QPoint imgBottomRight = imgwin->mapFrom(this, selection.bottomRight());
+    
+    // Calculate scaling factor from displayed image to actual image
+    double scaleX = (double)img.width() / imgwin->width();
+    double scaleY = (double)img.height() / imgwin->height();
+    
+    // Map to actual image coordinates
+    int x1 = qMax(0, qMin((int)(imgTopLeft.x() * scaleX), img.width() - 1));
+    int y1 = qMax(0, qMin((int)(imgTopLeft.y() * scaleY), img.height() - 1));
+    int x2 = qMax(0, qMin((int)(imgBottomRight.x() * scaleX), img.width()));
+    int y2 = qMax(0, qMin((int)(imgBottomRight.y() * scaleY), img.height()));
+    
+    int width = x2 - x1;
+    int height = y2 - y1;
+    
+    if (width <= 0 || height <= 0) {
+        return;
+    }
+    
+    // Extract the selected region
+    QImage selectedRegion = img.copy(x1, y1, width, height);
+    
+    // Scale by 2x
+    QImage zoomedImage = selectedRegion.scaled(
+        width * 2, 
+        height * 2, 
+        Qt::IgnoreAspectRatio, 
+        Qt::SmoothTransformation
+    );
+    
+    // Create and show zoom window
+    ZoomWindow *zoomWin = new ZoomWindow(zoomedImage, this);
+    zoomWin->show();
+}
 
