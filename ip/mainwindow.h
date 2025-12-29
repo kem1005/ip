@@ -76,6 +76,7 @@ private slots:
     void showGeometryTransform();
     //---------------------------------------------------------
     void saveAsImage(); // 另存圖片功能
+    void setPenColor(); // 設定畫筆顏色
     //---------------------------------------------------------------
 protected:
     void mouseMoveEvent (QMouseEvent * event);
@@ -99,6 +100,13 @@ private:
     QAction *geometryAction;
     //---------------------------------------------------------
     QAction *saveAsAction; // 另存新檔動作
+    QAction *penColorAction; // 畫筆顏色選單動作
+    QAction *redPenAction; // 紅色畫筆
+    QAction *bluePenAction; // 藍色畫筆
+    QAction *greenPenAction; // 綠色畫筆
+    QAction *blackPenAction; // 黑色畫筆
+    QAction *yellowPenAction; // 黃色畫筆
+    QAction *whitePenAction; // 白色畫筆
     //---------------------------------------------------------------
     QLabel *statusLabel;
     QLabel *MousePosLabel;
@@ -111,6 +119,13 @@ private:
     QRect selectionRect;
     SelectionOverlay *overlay;
     bool isZoomedWindow; // 標記是否為放大的子視窗
+    //---------------------------------------------------------------
+    //---------------------------------------------------------
+    // 畫筆繪圖相關變數（僅用於放大視窗）
+    bool isDrawing; // 是否正在繪圖
+    QPoint lastDrawPoint; // 上一個繪圖點
+    QColor penColor; // 畫筆顏色
+    int penWidth; // 畫筆寬度
     //---------------------------------------------------------------
 };
 #endif // MAINWINDOW_H
