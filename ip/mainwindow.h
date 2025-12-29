@@ -37,6 +37,7 @@ public:
 protected:
     void paintEvent(QPaintEvent *event) override
     {
+        Q_UNUSED(event);
         if (isActive && !selectionRect.isNull())
         {
             QPainter painter(this);
